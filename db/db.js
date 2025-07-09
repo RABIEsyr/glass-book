@@ -24,6 +24,7 @@ const chatSchema = new schema({
   text: String,
   date: { type: Date, default: Date.now },
   isRead: { type: Boolean, default: false },
+  status: { type: String, default: 'sent' },
   delete: []
 });
  
