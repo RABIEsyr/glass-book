@@ -6,7 +6,14 @@ const http = require("http").Server(app);
 //     methods: ["GET", "POST"]
 //   }
 // });
-const io = require("socket.io")(http);
+const io = require("socket.io")(http, {
+  path: "/socket.io",
+  cors: {
+    origin: "*", 
+    methods: ["GET", "POST"]
+  },
+  transports: ["polling"] 
+});
 const morgan = require("morgan");
 const bodyparser = require("body-parser");
 const mongoose = require("mongoose");
