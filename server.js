@@ -164,10 +164,14 @@ app.use(expressSS.static(path.resolve("uploads")));
 app.use("/profile-image/", expressSS.static("./uploads"));
 app.use("/static", expressSS.static("posts"));
 
-app.use(expressSS.static(__dirname + '/dist'));
-app.use('*', (req, res) => {
-  res.sendFile(path.join(__dirname + '/dist/index.html'))
+// app.use(expressSS.static(__dirname + '/dist'));
+app.use(expressSS.static(path.join(__dirname, "dist")));
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
+// app.use('*', (req, res) => {
+//   res.sendFile(path.join(__dirname + '/dist/index.html'))
+// });
 
 const port = process.env.PORT || config.port || 8000;
 http.listen(port, (err) => {
