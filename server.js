@@ -1,5 +1,4 @@
-const express = require('express')
-const app = express();
+const app = require("express")();
 const http = require("http").Server(app);
 // const io = require("socket.io")(http, {
 //   cors: {
@@ -7,14 +6,7 @@ const http = require("http").Server(app);
 //     methods: ["GET", "POST"]
 //   }
 // });
-const io = require("socket.io")(http, {
-  path: "/socket.io",
-  cors: {
-    origin: "*", 
-    methods: ["GET", "POST"]
-  },
-  transports: ["polling"] 
-});
+const io = require("socket.io")(http);
 const morgan = require("morgan");
 const bodyparser = require("body-parser");
 const mongoose = require("mongoose");
@@ -165,20 +157,17 @@ app.use('/seen', messageSeen);
 
 
 const path = require("path");
+const expressSS = require("express");
 
-app.use(express.static(path.join(__dirname, "uploads")));
-app.use(express.static(path.resolve("uploads")));
-app.use("/profile-image/", express.static("./uploads"));
-app.use("/static", express.static("posts"));
+app.use(expressSS.static(path.join(__dirname, "uploads")));
+app.use(expressSS.static(path.resolve("uploads")));
+app.use("/profile-image/", expressSS.static("./uploads"));
+app.use("/static", expressSS.static("posts"));
 
-// app.use(expressSS.static(__dirname + '/dist'));
-app.use(express.static(path.join(__dirname, "dist")));
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+app.use(expressSS.static(__dirname + '/dist'));
+app.use('*', (req, res) => {
+  res.sendFile(path.join(__dirname + '/dist/index.html'))
 });
-// app.use('*', (req, res) => {
-//   res.sendFile(path.join(__dirname + '/dist/index.html'))
-// });
 
 const port = process.env.PORT || config.port || 8000;
 http.listen(port, (err) => {
@@ -190,4 +179,3 @@ http.listen(port, (err) => {
 });
 
 //module.exports = app;
-//deploy
