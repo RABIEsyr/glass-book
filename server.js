@@ -61,9 +61,6 @@ try {
 }
 
 mongoose.Promise = global.Promise;
-//const url = 'mongodb+srv://jan:jano1111@cluster0.5kxltgc.mongodb.net/?retryWrites=true&w=majority"';
-// const url = 'mongodb+srv://rabie:A1b2c3d4e5@cluster0-kixy3.gcp.mongodb.net/test?retryWrites=true&w=majority'
-
 const url = "mongodb+srv://rabie:A1b2c3d4e5..!@cluster0.ahjsytc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 const connectionParams={
     useNewUrlParser: true,
