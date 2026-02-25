@@ -28,6 +28,7 @@ module.exports = function (io) {
     }
   }).on("connection", async function (socket) {
      socket._id = senderTokent.user._id;
+     socket.currentUrl = null
     let user123 = await db.userSchema.findOneAndUpdate({_id: socket._id}, {online: true});
     console.log('user123', user123);
     array_of_connection.push(socket);
@@ -52,7 +53,7 @@ module.exports = function (io) {
         // });
        // console.log('user get-online friend', tempOnlineFriends);
       array_of_connection.forEach((socket) => {
-        socket.emit('online-users', user123._id);
+        socket.emit('online-users', user123?._id);
       })
        
          
@@ -62,7 +63,7 @@ module.exports = function (io) {
       console.log('new message 2025')
       let id = message.id;
       sessionMap[message._id] = socket.id;
-
+      let curUrl = null
       //     db.userSchema.find({isAdmin: true}, function(err, admins) {
       //       const newMessage = new db.chatSchema();
 
@@ -79,16 +80,20 @@ module.exports = function (io) {
       newMessage.from = socket._id;
       newMessage.to = id;
       newMessage.text = message.msg;
-      newMessage.save().then((m) => {
-        console.log('mana,', m)
+      newMessage.save().then(async(m) => {
+       
+        const senderNameis = await db.userSchema.findById(socket._id)
+         console.log('mana,', m, 'senderNameis: ', senderNameis)
         messageNew = {
           msg: message.msg,
           senderId: socket._id,
           receiverId: id,
           _id: m._id,
-          delete: m.delete
+          delete: m.delete,
+          status: 'sent',
+          senderName: senderNameis.name
         }
-        
+        console.log('default message ', messageNew) 
         db.userSchema.findOne({ _id: socket._id }).exec((err, user) => {
           db.userSchema.findOne({ _id: id }).exec((err, user2) => {
             newMessageforChatList = {
@@ -120,25 +125,64 @@ module.exports = function (io) {
         })
         
         for (let i = 0; i < array_of_connection.length; i++) {
-          if (array_of_connection[i]._id == id ) {
+          if (array_of_connection[i]._id == id) {
             // array_of_connection[i].emit("new-msg-list", newMessageforChatList)
-            array_of_connection[i].emit("msg", messageNew);
            
-          }}
-          for (let i = 0; i < array_of_connection.length; i++) {
-            if (array_of_connection[i]._id == socket._id) {
-              // array_of_connection[i].emit("new-msg-list", newMessageforChatList)
+            console.log('the current url: ', array_of_connection[i].currentUrl)
+
+            console.log('curll', curUrl)
+            if (array_of_connection[i].currentUrl == socket._id) {
+              db.chatSchema
+                .findOneAndUpdate({ _id: messageNew._id }, { status: 'seen' })
+                .exec((err, m) => {
+                  if (m) {
+                    messageNew = {
+                      msg: message.msg,
+                      senderId: socket._id,
+                      receiverId: id,
+                      _id: m._id,
+                      delete: m.delete,
+                      status: 'seen',
+                      senderName: 'sam'
+                    }
+                   // console.log('seen result', res1)
+                    array_of_connection[i].emit("msg", messageNew);
+
+                  }
+                })
+            } else {
               array_of_connection[i].emit("msg", messageNew);
-             
             }
-          // if (array_of_connection[i]._id == socket._id){
-          //   array_of_connection[i].emit("new-msg-list", newMessageforChatList)
-          // }
+
+          }
+        }
+        for (let i = 0; i < array_of_connection.length; i++) {
+            if (array_of_connection[i]._id == socket._id) {
+
+              
+               db.chatSchema
+                .findOne({ _id: messageNew._id })
+                  .exec((err, res11) => {
+                    messageNew = {
+                      msg: message.msg,
+                      senderId: socket._id,
+                      receiverId: id,
+                      _id: m._id,
+                      delete: m.delete,
+                      status: res11.status
+                    }
+                    array_of_connection[i].emit("msg", messageNew);
+
+                 console.log('here message', messageNew)
+                  })
+              
+            }
+        
         }
         
       });
 
-
+      
     });
     socket.on("new-post", (post) => {
       db.userSchema
@@ -158,6 +202,14 @@ module.exports = function (io) {
       post.owner = 'gggggg'
       socket.emit("new-post", post);
     });
+    socket.on('current-url', (url) => {
+      console.log('current-url', url)
+       for (let i = 0; i < array_of_connection.length; i++) {
+            if (array_of_connection[i]._id == socket._id) {
+              array_of_connection[i].currentUrl = url;
+            }
+        }
+    })
     socket.on('edit-post', (post) => {
       db.postSchema.findOneAndUpdate({ _id: post.id }, { text: post.text }).exec((err, res) => {
         db.userSchema.findOne({ _id: post.owner })
@@ -251,11 +303,15 @@ module.exports = function (io) {
             db.postSchema
               .findOne({ _id: comment.post })
               .populate("owner")
-              .exec((err, post) => {
+              .exec(async(err, post) => {
+                let username = await db.userSchema.findById(socket._id).select('name')
+                newComment = comment.toObject()
+                newComment.uname = username.name;
+                console.log('popo22: ', newComment)
                 let friendList = post.owner.friends
                 for (let conn of array_of_connection) {
                   // if (friendList.indexOf(conn._id) !== -1) {
-                  io.to(conn.id).emit("new-comment-posted", comment)
+                  io.to(conn.id).emit("new-comment-posted", newComment)
                   // }
                 }
               });
@@ -296,7 +352,7 @@ module.exports = function (io) {
                   .populate('owner')
                   .exec((err, post) => {
                    // console.log('0000 ', like1)
-                    let friendList = post.owner.friends
+                    let friendList = post?.owner?.friends
                     for (let conn of array_of_connection) {
                       // if (friendList.indexOf(conn._id) !== -1) {
                       io.to(conn.id).emit("remove-like", like1)
@@ -314,7 +370,7 @@ module.exports = function (io) {
                 .findOneAndUpdate({ _id: postId.postID }, { $push: { likes: like._id } })
                 .populate('owner')
                 .exec((err, post) => {
-                  let friendList = post.owner.friends
+                  let friendList = post?.owner?.friends
                   for (let conn of array_of_connection) {
                     // if (friendList.indexOf(conn._id) !== -1) {
                     io.to(conn.id).emit("add-like", like)
@@ -398,12 +454,54 @@ module.exports = function (io) {
       });
       //end open camera for both
 
+      //end-call
+socket.on('end-call', (id) => {
+   console.log('iss', id)
+  for (let i = 0; i < array_of_connection.length; i++) {
+          if (array_of_connection[i]._id == id.to) {
+            console.log('iss2', id.to)
+            array_of_connection[i].emit('end-call',{ reason: 'user-ended' });
+          }
+        }
+         for (let i = 0; i < array_of_connection.length; i++) {
+            if (array_of_connection[i]._id == socket._id) {
+               console.log('iss2', id.to)
+               array_of_connection[i].emit('end-call',{ reason: 'user-ended' })
+            }}
+
+        
+})
+
+    // typing meassage
+    socket.on('typing', (id) => {
+      const senderId = socket._id;
+      const receiveId = id;
+
+      for (let i = 0; i < array_of_connection.length; i++) {
+        if (array_of_connection[i]._id == receiveId) {
+          array_of_connection[i].emit('typing', senderId)
+        }
+      }
+    })
+
+    socket.on('stop-typing', (id) => {
+      const senderId = socket._id;
+      const receiveId = id;
+
+      for (let i = 0; i < array_of_connection.length; i++) {
+        if (array_of_connection[i]._id == receiveId) {
+          array_of_connection[i].emit('stop-typing', senderId)
+        }
+      }
+    })
+
+      //disconnect soceket
     socket.on('disconnect',  async () => {
       socket.removeAllListeners();
        let uu = await db.userSchema.findOneAndUpdate({_id: socket._id}, {online: false});
       //  console.log('uuuu', uu)
        array_of_connection.forEach((socket) => {
-        socket.emit('friend-leave2', uu._id)
+        socket.emit('friend-leave2', uu?._id)
        })
       
     

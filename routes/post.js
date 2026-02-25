@@ -38,15 +38,15 @@ router.post("/new-post", checkJwt, upload.single("file"), (req, res, next) => {
           success: false,
         });
       } else {
-        db.postSchema.findOne({_id:post._id})
-        .populate('owner')
-        .exec((err, post) =>{
-          res.json({
-            success: true,
-            post,
-          });
-        })
-        
+        db.postSchema.findOne({ _id: post._id })
+          .populate('owner')
+          .exec((err, post) => {
+            res.json({
+              success: true,
+              post,
+            });
+          })
+
       }
     });
   });
@@ -86,33 +86,39 @@ router.get('/friends-post', checkJwt, async (req, res) => {
   let posts = []
   let finalPosts = []
   try {
-    db.userSchema.findOne({ _id: id } ,(err, frnds) => {
-      if (frnds != null ) {
-      fs = frnds.friends
-      posts = db.postSchema.find()
-         .populate('comments')
-         .populate('likes')
-         .populate('owner')
-          .exec()
-      posts.then((value) => {
-        value.map(p => {
-
-          for (let i = 0; i < value.length; i++) {
-            if (p.owner._id.toString() == fs[i]) {
-              finalPosts.unshift(p)
+    db.userSchema.findOne({ _id: id }, (err, frnds) => {
+      if (frnds != null) {
+        fs = frnds.friends
+        posts = db.postSchema.find()
+          .populate({
+            path: 'comments',
+            populate: {
+              path: 'user',        // جلب بيانات المستخدم لكل تعليق
+              select: 'name email username profileImage' // الحقول التي تريدها
             }
-          }
+          })
+          .populate('likes')
+          .populate('owner')
+          .exec()
+        posts.then((value) => {
+          value.map(p => {
 
+            for (let i = 0; i < value.length; i++) {
+              if (p.owner._id.toString() == fs[i]) {
+                finalPosts.unshift(p)
+              }
+            }
+
+          })
+          res.json(finalPosts.slice(index, index + 2))
         })
-        res.json(finalPosts.slice(index, index + 2))
-      })
-    }
+      }
     })
 
   } catch (error) {
     console.log(error)
   }
-  
+
 
 
 
@@ -162,7 +168,7 @@ router.get('/friends-post', checkJwt, async (req, res) => {
 //           })
 //       }
 //       return  Promise.resolve(postsArr) 
-     
+
 //     }).then((p) => {
 //       console.log(p)
 //     })
@@ -171,16 +177,19 @@ router.get('/friends-post', checkJwt, async (req, res) => {
 router.get('/user-post/:id', checkJwt, async (req, res, next) => {
   let index = +req.headers["index2"];
   try {
-      let da = await db.userSchema.findOne({ _id: req.params.id }).populate('posts').exec();
-      let postsArray = [];
+    let da = await db.userSchema.findOne({ _id: req.params.id }).populate('posts').exec();
+    let postsArray = [];
+    if (da) {
       for (let post of da.posts) {
-          let result = await db.postSchema.find({ _id: post._id }).populate('comments').populate('likes').exec();
-          postsArray.unshift(result);
-      }
-      if (postsArray[0].length > 0)
+      let result = await db.postSchema.find({ _id: post._id }).populate('comments').populate('likes').exec();
+      postsArray.unshift(result);
+    }
+    if (postsArray[0].length > 0)
       res.send(postsArray.slice(index, index + 2))
+    }
+    
   } catch (e) {
-      console.log(e);
+    console.log(e);
   }
 });
 module.exports = router;

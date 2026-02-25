@@ -53,32 +53,68 @@ router.post("", checkJwt, upload.single("file"), function (req, res) {
 testFolder = "uploads/";
 
 router.get("/get-pic", checkJwt, (req, res) => {
-  fs.readdirSync(testFolder).forEach((file) => {
-    if (
-      req.decoded.user._id + ".png" === file ||
-      req.decoded.user._id + ".jpg" === file ||
-      req.decoded.user._id + ".PNG" === file
-    ) {
-      fs.readFile(
-        "./uploads/" + req.decoded.user._id + ".PNG",
-        "base64",
-        (err, base64Image) => {
-          const dataUrl = `data:image/png;base64, ${base64Image}`;
-          res.json(dataUrl);
+  const userId = req.decoded.user._id;
+  const extensions = ['.png', '.jpg', '.PNG'];
+  let found = false;
+
+  // البحث عن الملف
+  const files = fs.readdirSync(testFolder);
+  for (const file of files) {
+    if (extensions.some(ext => `${userId}${ext}` === file)) {
+      const filePath = path.join('./uploads', `${userId}.PNG`);
+      
+      fs.readFile(filePath, "base64", (err, base64Image) => {
+        if (err) {
+          console.error('Error reading file:', err);
+          return sendDefaultImage(res);
         }
-      );
+        
+        const src = `data:image/png;base64,${base64Image}`;
+        res.json(src);
+      });
+      
+      found = true;
+      break;
     }
-  });
+  }
+
+  if (!found) {
+    sendDefaultImage(res);
+  }
 });
+
 router.post("/get-search-user-pic", checkJwt, (req, res) => {
   fs.readFile(
     "./uploads/" + req.body.id + ".PNG",
     "base64",
     (err, base64Image) => {
       const dataUrl = `data:image/png;base64, ${base64Image}`;
+      console.log('dataurl', dataUrl)
+      if (base64Image) {
       res.json(dataUrl);
+      } else {
+        fs.readFile( "./uploads/" + 'avatar' + ".png",
+    "base64", (err, base) =>{
+    const dataUrl = `data:image/png;base64, ${base}`;
+      res.json(dataUrl);
+    })
+      }
+     
     }
   );
 });
 
+function sendDefaultImage(res) {
+  const defaultPath = path.join('./uploads', 'avatar.png');
+  
+  fs.readFile(defaultPath, "base64", (err, base64Image) => {
+    if (err) {
+      console.error('Error reading default image:', err);
+      return res.status(500).json({ error: 'Cannot load image' });
+    }
+    
+    const src = `data:image/png;base64,${base64Image}`;
+    res.json(src);
+  });
+}
 module.exports = router;

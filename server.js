@@ -32,11 +32,13 @@ const getUSerName = require("./routes/getUserName");
 const publicKey = require('./routes/getPublicKey');
 const checkAuth = require('./routes/checkAuth');
 
+
+
 // socket for route
 // const io2 = require('socket.io')(http);
 const onlineUsers = new Map();
 const chatMessageRoute = require("./routes/cahtMessage")(io, onlineUsers);
-
+const messageSeen = require('./routes/messageSentSeen')(io, onlineUsers);
 try {
   io.on('connection', (socket) => {
     var userId;
@@ -58,15 +60,36 @@ try {
   console.log(' eroor 0099', error)
 }
 
+/** mongo atlas */
+
 mongoose.Promise = global.Promise;
-const ConnectionUri = config.db;
-mongoose.connect(ConnectionUri, (err) => {
-  if (err) {
-    console.log("Error in connecting to Mongo DB !!");
-    throw err;
-  }
-  console.log("successfully connected to database ..");
-});
+const url = "mongodb+srv://rabie:A1b2c3d4e5..!@cluster0.ahjsytc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+const connectionParams = {
+  useNewUrlParser: true,
+  useCreateIndex: true,
+  useUnifiedTopology: true,
+}
+mongoose.connect(url, connectionParams)
+  .then(() => {
+    console.log('Connected to database CLOUDE ')
+  })
+  .catch((err) => {
+    console.error(`Error connecting to the database. \n${err}`);
+  })
+
+
+
+/** local db */
+
+// mongoose.Promise = global.Promise;
+// const ConnectionUri = config.db;
+// mongoose.connect(ConnectionUri, (err) => {
+//   if (err) {
+//     console.log("Error in connecting to Mongo DB !!");
+//     throw err;
+//   }
+//   console.log("successfully connected to database ..");
+// });
 
 const user1 = new db.userSchema();
 user1.name = 'samer'
@@ -133,6 +156,8 @@ app.use("/check-match-id", checkMatchId);
 app.use("/get-user-name", getUSerName);
 app.use('/public-key', publicKey);
 app.use('/check-auth', checkAuth);
+app.use('/seen', messageSeen);
+
 
 const path = require("path");
 const expressSS = require("express");
@@ -142,10 +167,10 @@ app.use(expressSS.static(path.resolve("uploads")));
 app.use("/profile-image/", expressSS.static("./uploads"));
 app.use("/static", expressSS.static("posts"));
 
-// app.use(expressSS.static(__dirname + '/dist'));
-// app.use('*', (req, res) => {
-//   res.sendFile(path.join(__dirname + '/dist/index.html'))
-// });
+app.use(expressSS.static(__dirname + '/dist'));
+app.use('*', (req, res) => {
+  res.sendFile(path.join(__dirname + '/dist/index.html'))
+});
 
 const port = process.env.PORT || config.port || 8000;
 http.listen(port, (err) => {
@@ -157,3 +182,4 @@ http.listen(port, (err) => {
 });
 
 //module.exports = app;
+// new 2026

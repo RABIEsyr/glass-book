@@ -12,31 +12,33 @@ testFolder = "uploads/";
 router.post("/new-request", checkJwt, (req, res) => {
   const id = req.decoded.user._id;
   const requestId = req.body.id;
-  let isExist = false;
+  let isExist1 = false;
+  let isExist2 = false
   db.userSchema.findOne({ _id: requestId }).exec(function (err, user) {
     for (let i = 0; i < user.friendRequest.length; i++) {
       if (user.friendRequest[i] == id) {
-        isExist = true;
+        isExist1 = true;
       } else {
-        isExist = false;
+        isExist1 = false;
       }
     }
     for (let i = 0; i < user.friends.length; i++) {
       if (user.friends[i] == id) {
-        isExist = true;
+        isExist2 = true;
       } else {
-        isExist = false;
+        isExist2 = false;
       }
     }
-    if (!isExist) {
+    if (!isExist1 && !isExist2) {
       user.friendRequest.push(id);
       user.save();
       res.json({
         success: true,
       });
     } else {
+      console.log('friend already sent')
       res.json({
-        success: true,
+        success: false,
       });
     }
 
@@ -51,6 +53,7 @@ router.get("/get-friend-requests-length", checkJwt, (req, res) => {
   db.userSchema.findOne({ _id: id }).exec((err, user) => {
     if (user) {
       if (user.friendRequest.length > 0) {
+        console.log('request user: ', user.friendRequest.length)
         res.json({
           length: user.friendRequest.length,
         });
@@ -70,10 +73,22 @@ router.get("/get-friend-requests", checkJwt, (req, res) => {
     .exec((err, users) => {
       if (users) {
         if (users.friendRequest.length > 0) {
-          result = users.friendRequest.map((item) => {
-            const contents = fs.readFileSync(testFolder + item._id + ".PNG", {
-              encoding: "base64",
-            });
+          try {
+            result = users.friendRequest.map((item) => {
+            // const contents = fs.readFileSync(testFolder + item._id + ".PNG", {
+              //   encoding: "base64",
+              // });
+              let contents;
+              const userImagePath = testFolder + item._id + ".PNG";
+              const defaultImagePath = testFolder + 'avatar.png';
+
+              if (fs.existsSync(userImagePath)) {
+                // إذا وجدت صورة المستخدم
+                contents = fs.readFileSync(userImagePath, { encoding: "base64" });
+              } else {
+                // استخدم الصورة الافتراضية
+                contents = fs.readFileSync(defaultImagePath, { encoding: "base64" });
+              }
             if (contents) {
               db.userSchema.findOne({ _id: item }).exec((err, r) => {
                 nm = r.name;
@@ -92,9 +107,12 @@ router.get("/get-friend-requests", checkJwt, (req, res) => {
               };
             }
           });
+          } catch (error) {
+            console.log('error 8799 ', error)
+          }
         }
       }
-
+      console.log('friend-reques-result', result)
       res.json({
         result,
       });
@@ -133,20 +151,31 @@ router.get("/get-friends", checkJwt, (req, res) => {
     .findOne({ _id: id })
     .populate("friends")
     .exec((err, user) => {
-      result = user.friends.map((item) => {
-        const contents = fs.readFileSync(testFolder + item._id + ".PNG", {
-          encoding: "base64",
-        });
-        return {
-          name: item.name,
-          id: item._id,
-          image: contents,
-          status: item.online,
-        };
-      });
-      res.json({
-        result,
-      });
+      if (user) {
+        try {
+          result = user.friends.map((item) => {
+            const filePath = `${testFolder}${item._id}.PNG`;
+            if (fs.existsSync(filePath)) {
+              const contents = fs.readFileSync(testFolder + item._id + ".PNG", {
+                encoding: "base64",
+              });
+              if (contents && contents.length > 0) {
+                return { name: item["name"], id: item["_id"], image: contents, status: item.online };
+              }
+            }
+            const contents = fs.readFileSync(testFolder + 'avatar' + ".png", {
+              encoding: "base64",
+            });
+            return { name: item["name"], id: item["_id"], image: contents, status: item.online, }
+
+          });
+          res.json({
+            result,
+          });
+        } catch (error) {
+          console.log('error9090', error)
+        }
+      }
     });
 });
 
@@ -176,17 +205,23 @@ router.post('/remove-submitted-user', checkJwt, (req, res) => {
 router.post('/request-pending', checkJwt, (req, res) => {
   let id = req.body.id
   console.log('request-pending', id);
-  db.userSchema.findOne({ _id: id })
-    .exec((err, user) => {
-      if (user.friendRequest != null) {
-      user.friendRequest.forEach(item => {
-        if (item == req.decoded.user._id) {
-          res.write('true')
+  try {
+    db.userSchema.findOne({ _id: id })
+      .exec((err, user) => {
+        if (user) {
+          if (user.friendRequest != null) {
+            user.friendRequest.forEach(item => {
+              if (item == req.decoded.user._id) {
+                res.write('true')
+              }
+            })
+          }
         }
+        res.end();
       })
-    }
-      res.end();
-    })
+  } catch (error) {
+    console.log('the error 3412', err)
+  }
 
 });
 router.post('/remove-request-user-one', checkJwt, (req, res) => {
@@ -211,5 +246,31 @@ router.post('/remove-request-user-one', checkJwt, (req, res) => {
       }
     })
 
+})
+
+router.post('/is-other-already-sent-reques', checkJwt, (req, res, next) => {
+  let otherId;
+  let id;
+  try {
+    id = req.decoded.user._id;
+    otherId = req.body.id;
+    console.log('otherID', otherId)
+    db.userSchema.findOne({ _id: id }).exec(function (err, user) {
+      for (let i = 0; i < user?.friendRequest?.length; i++) {
+        if (user.friendRequest[i] == otherId) {
+          console.log('request sent yestarday')
+          res.json({
+            success: true,
+          })
+        } else {
+          res.json({
+            success: false
+          })
+        }
+      }
+    })
+  } catch (error) {
+    console.log('ya error', error)
+  }
 })
 module.exports = router;

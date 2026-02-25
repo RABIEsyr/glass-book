@@ -23,7 +23,7 @@ router.post('/sign-up', (req, res) => {
     password = req.body.password
     name = req.body.name;
     gender = req.body.gender
-
+console.log(req.body.email, req.body.name, req.body.gender, req.body.password)
     if (email && password && name && gender) {
 
         db.userSchema.findOne({ email: email }, (err, doc) => {
@@ -113,6 +113,48 @@ router.post('/sign-up', (req, res) => {
 
 });
 
+// router.post('/sign-in', (req, res) => {
+//     email = req.body.email;
+//     password = req.body.password
+
+//     if (email && password) {
+
+//         db.userSchema.findOne({ email: email }, (err, doc) => {
+//             if (err) console.log(err);
+
+//             if (doc) {
+//                 var token = jwt.sign(
+//                     { user: doc },
+//                     config.secret
+//                 );
+
+//                 res.json(
+//                     {
+//                         success: true,
+//                         message: 'you are logged in',
+//                         token: token,
+//                         userId: doc._id
+//                     }
+//                 );
+//             } else {
+//                 res.json(
+//                     {
+//                         success: false,
+//                         message: 'email and password not match'
+//                     }
+//                 )
+//             }
+//         });
+
+//     } else {
+//         res.json({
+//             success: false,
+//             message: 'send your credentials for login'
+//         });
+//     }
+
+// });
+
 router.post('/sign-in', (req, res) => {
     email = req.body.email;
     password = req.body.password
@@ -123,26 +165,29 @@ router.post('/sign-in', (req, res) => {
             if (err) console.log(err);
 
             if (doc) {
-                var token = jwt.sign(
-                    { user: doc },
-                    config.secret
-                );
+                if (doc.password === password) {
+                    var token = jwt.sign(
+                        { user: doc },
+                        config.secret
+                    );
 
-                res.json(
-                    {
-                        success: true,
-                        message: 'you are logged in',
-                        token: token,
-                        userId: doc._id
-                    }
-                );
-            } else {
-                res.json(
-                    {
-                        success: false,
-                        message: 'email and password not match'
-                    }
-                )
+                    res.json(
+                        {
+                            success: true,
+                            message: 'you are logged in',
+                            token: token,
+                            userId: doc._id
+                        }
+                    );
+                } else {
+                    res.json(
+                        {
+                            success: false,
+                            message: 'email and password not match'
+                        }
+                    )
+                }
+
             }
         });
 

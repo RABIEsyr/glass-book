@@ -39,11 +39,14 @@ router.get('', checkJwt, async(req, res, next) => {
 })
 
 router.get('/unread-message', checkJwt, (req, res, next) => {
-    db.chatSchema.find({            
+    db.chatSchema.find({
+        $and: [
+            {
                 to: req.decoded.user._id,
-                status: 'sent'
+                isRead: false
             }
-    ).populate('from', '_id name')
+        ]
+    }).populate('from', '_id name')
     .exec((err, msgs) => {
         console.log('getAllMessages unread-message', msgs)
         res.json({
@@ -63,7 +66,7 @@ router.post('/read-message', checkJwt, (req, res, next) => {
             }
         ],
         
-    }, { status: 'seen'}, (err, res) => {
+    }, {isRead: true}, (err, res) => {
         if (err)
             console.log("getAllMessages.js read messages error", err)
         console.log('getAllMessages.js read messages', res)
