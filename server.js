@@ -33,11 +33,7 @@ const publicKey = require('./routes/getPublicKey');
 const checkAuth = require('./routes/checkAuth');
 const stories = require('./routes/stories')
 
-<<<<<<< HEAD
 const userActivity = require('./routes/userActivity')
-=======
-
->>>>>>> b6f664d3114e80bad46448cb3e64c936074016b2
 // auth for static files
 const auth = require('./middleware/checkAuth')
 //end auth
@@ -71,11 +67,8 @@ try {
 
 /** mongo atlas */
 
-// mongodb+srv://rabie:A1b2c3d4e5..!@cluster0.ahjsytc.mongodb.net/?appName=Cluster0
-// const url = "mongodb+srv://rabie:A1b2c3d4e5..!@cluster0.ahjsytc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-
 mongoose.Promise = global.Promise;
-const url = "mongodb+srv://rabie:A1b2c3d4e5..!@cluster0.ahjsytc.mongodb.net/?appName=Cluster0"
+const url = "mongodb+srv://rabie:A1b2c3d4e5..!@cluster0.ahjsytc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 const connectionParams = {
   useNewUrlParser: true,
   useCreateIndex: true,
@@ -83,7 +76,7 @@ const connectionParams = {
 }
 mongoose.connect(url, connectionParams)
   .then(() => {
-    console.log('Connected to database CLOUDE Successfully')
+    console.log('Connected to database CLOUDE ')
   })
   .catch((err) => {
     console.error(`Error connecting to the database. \n${err}`);
@@ -104,8 +97,6 @@ mongoose.connect(ConnectionUri, (err) => {
   console.log("successfully connected to database ..");
 });
 // end local db
-
-
 
 const user1 = new db.userSchema();
 user1.name = 'samer'
@@ -174,10 +165,7 @@ app.use('/public-key', publicKey);
 app.use('/check-auth', checkAuth);
 app.use('/seen', messageSeen);
 app.use('/api/stories', stories)
-<<<<<<< HEAD
 app.use('/api/user-activity', userActivity)
-=======
->>>>>>> b6f664d3114e80bad46448cb3e64c936074016b2
 
 const path = require("path");
 const expressSS = require("express");
@@ -206,8 +194,4 @@ http.listen(port, (err) => {
 
 //module.exports = app;
 // new 2026
-<<<<<<< HEAD
 // glassbook-server-27
-=======
-// 25/5/2026
->>>>>>> b6f664d3114e80bad46448cb3e64c936074016b2
