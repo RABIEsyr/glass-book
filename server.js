@@ -93,15 +93,15 @@ mongoose.connect(url, connectionParams)
 
 /** local db */
 
-mongoose.Promise = global.Promise;
-const ConnectionUri = config.db;
-mongoose.connect(ConnectionUri, (err) => {
-  if (err) {
-    console.log("Error in connecting to Mongo DB !!");
-    throw err;
-  }
-  console.log("successfully connected to database ..");
-});
+// mongoose.Promise = global.Promise;
+// const ConnectionUri = config.db;
+// mongoose.connect(ConnectionUri, (err) => {
+//   if (err) {
+//     console.log("Error in connecting to Mongo DB !!");
+//     throw err;
+//   }
+//   console.log("successfully connected to database ..");
+// });
 // end local db
 
 
