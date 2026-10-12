@@ -21,7 +21,7 @@ const indexRoute = require("./routes/index");
 const messageRoute = require("./routes/user-message");
 const uploadPhotoRoute = require("./routes/uploadaPhoto");
 const postRoute = require("./routes/post");
-const userRoute = require("./routes/users");
+
 const friendRequestRoute = require("./routes/friendRequest");
 const notificationsRoute = require("./routes/notifications");
 const commentRoute = require("./routes/comment");
@@ -31,14 +31,19 @@ const checkMatchId = require("./routes/checkMatchId");
 const getUSerName = require("./routes/getUserName");
 const publicKey = require('./routes/getPublicKey');
 const checkAuth = require('./routes/checkAuth');
+const stories = require('./routes/stories')
 
-
+const userActivity = require('./routes/userActivity')
+// auth for static files
+const auth = require('./middleware/checkAuth')
+//end auth
 
 // socket for route
 // const io2 = require('socket.io')(http);
 const onlineUsers = new Map();
 const chatMessageRoute = require("./routes/cahtMessage")(io, onlineUsers);
 const messageSeen = require('./routes/messageSentSeen')(io, onlineUsers);
+const userRoute = require("./routes/users")(io, onlineUsers);
 try {
   io.on('connection', (socket) => {
     var userId;
@@ -76,20 +81,22 @@ mongoose.connect(url, connectionParams)
   .catch((err) => {
     console.error(`Error connecting to the database. \n${err}`);
   })
+// end mongo atlas
 
 
 
 /** local db */
 
-// mongoose.Promise = global.Promise;
-// const ConnectionUri = config.db;
-// mongoose.connect(ConnectionUri, (err) => {
-//   if (err) {
-//     console.log("Error in connecting to Mongo DB !!");
-//     throw err;
-//   }
-//   console.log("successfully connected to database ..");
-// });
+mongoose.Promise = global.Promise;
+const ConnectionUri = config.db;
+mongoose.connect(ConnectionUri, (err) => {
+  if (err) {
+    console.log("Error in connecting to Mongo DB !!");
+    throw err;
+  }
+  console.log("successfully connected to database ..");
+});
+// end local db
 
 const user1 = new db.userSchema();
 user1.name = 'samer'
@@ -157,7 +164,8 @@ app.use("/get-user-name", getUSerName);
 app.use('/public-key', publicKey);
 app.use('/check-auth', checkAuth);
 app.use('/seen', messageSeen);
-
+app.use('/api/stories', stories)
+app.use('/api/user-activity', userActivity)
 
 const path = require("path");
 const expressSS = require("express");
@@ -167,6 +175,9 @@ app.use(expressSS.static(path.resolve("uploads")));
 app.use("/profile-image/", expressSS.static("./uploads"));
 app.use("/static", expressSS.static("posts"));
 
+app.use('/uploads/stories', auth, expressSS.static(path.join(__dirname, 'uploads/stories')));
+
+// *** deployment ***
 app.use(expressSS.static(__dirname + '/dist'));
 app.use('*', (req, res) => {
   res.sendFile(path.join(__dirname + '/dist/index.html'))
@@ -183,3 +194,4 @@ http.listen(port, (err) => {
 
 //module.exports = app;
 // new 2026
+// glassbook-server-27

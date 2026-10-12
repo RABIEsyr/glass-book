@@ -50,6 +50,24 @@ const likeSchema = new schema({
   user: { type: schema.Types.ObjectId, ref: "userSchema" },
 })
 
+// models/Story.js
+
+const storySchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'userSchema', required: true },
+  slides: [{
+    type: { type: String, enum: ['image', 'video', 'text'] },
+    url: String,
+    text: String,
+    backgroundColor: String,
+    createdAt: { type: Date, default: Date.now }
+  }],
+  seenBy: [{ type: mongoose.Schema.Types.ObjectId, ref: 'userSchema' }],
+  // createdAt: { type: Date, default: Date.now, expires: 86400 } // حذف تلقائي بعد 24 ساعة
+  createdAt: { type: Date, default: Date.now, expires: 300 } // حذف تلقائي بعد 24 ساعة
+});
+
+module.exports.storySchema = mongoose.model('Story', storySchema);
+
 module.exports.userSchema = mongoose.model("userSchema", userSchema);
 module.exports.chatSchema = mongoose.model("chatSchema", chatSchema);
 module.exports.postSchema = mongoose.model("postSchema", postSchema);

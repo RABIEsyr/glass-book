@@ -8,7 +8,15 @@ var fs = require("fs");
 
 testFolder = "uploads/";
 
-router.post("/search-user", checkJwt, async (req, res, next) => {
+module.exports = function(io, onlineUsers) {
+  function isOnline(id) {
+    const idStr = id.toString ? id.toString() : String(id);
+  console.log('Checking ID:', idStr);
+  console.log('Map keys:', [...onlineUsers.keys()]);
+  return onlineUsers.has(idStr);
+  }
+
+  router.post("/search-user", checkJwt, async (req, res, next) => {
   let name = req.body.name;
 
   try {
@@ -31,19 +39,22 @@ router.post("/search-user", checkJwt, async (req, res, next) => {
                     encoding: "base64",
                   });
                   if (contents && contents.length > 0) {
-                    return { name: item["name"], id: item["_id"], image: contents };
+                   let s = isOnline(item._id)
+                   console.log('yes: ', s)
+                    return { name: item["name"], id: item["_id"], image: contents, online: isOnline(item._id)  };
                   }
                 }
                 const contents = fs.readFileSync(testFolder + 'avatar' + ".png", {
                   encoding: "base64",
                 });
+               
                 return { name: item["name"], id: item["_id"], image: contents }
               
             });
            } catch (error) {
             console.log('upload error 2233', error)
            }
-  
+   
             res.json({
               success: true,
               users: result,
@@ -53,7 +64,7 @@ router.post("/search-user", checkJwt, async (req, res, next) => {
       }
     );
   } catch (error) {
-    
+    console.log('oh error !: ', error)
   }
 });
 
@@ -80,4 +91,9 @@ router.post('/get-username-profile/:id', checkJwt, (req,res,next) => {
       }
     })
 })
-module.exports = router;
+  return router
+}
+
+// module.exports = router;
+
+

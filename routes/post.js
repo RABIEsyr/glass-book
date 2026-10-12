@@ -78,82 +78,150 @@ router.get("/get-posts", checkJwt, (req, res, next) => {
 
 
 });
+// قبل اضافة ارسال منشورات عشوائية
+// router.get('/friends-post', checkJwt, async (req, res) => {
+//   let index = +req.headers["index2"];
+
+//   const id = req.decoded.user._id
+//   let fs = [];
+//   let posts = []
+//   let finalPosts = []
+//   try {
+//     db.userSchema.findOne({ _id: id }, (err, frnds) => {
+//       if (frnds != null) {
+//         fs = frnds.friends
+//         posts = db.postSchema.find()
+//           .populate({
+//             path: 'comments',
+//             populate: {
+//               path: 'user',        // جلب بيانات المستخدم لكل تعليق
+//               select: 'name email username profileImage' // الحقول التي تريدها
+//             }
+//           })
+//           .populate('likes')
+//           .populate('owner')
+//           .exec()
+//         posts.then((value) => {
+//           value.map(p => {
+
+//             for (let i = 0; i < value.length; i++) {
+//               if (p.owner._id.toString() == fs[i]) {
+//                 finalPosts.unshift(p)
+//               }
+//             }
+
+//           })
+//           res.json(finalPosts.slice(index, index + 2))
+//         })
+//       }
+//     })
+
+//   } catch (error) {
+//     console.log(error)
+//   }
+
+
+
+
+//   //  db.userSchema.findOne({ _id: id })
+//   //   .exec( (err, frnds) => {
+//   //     fs =  frnds.friends
+
+//   //   })
+//   // posts = await db.postSchema.find().exec()
+//   // let finalPosts = []
+//   // posts.map( p => {
+
+//   //   for (let i = 0; i < fs.length; i++) {
+//   //     if (p.owner.toString() == fs[i]) {
+//   //        finalPosts.push(p)
+//   //     }
+//   //   }
+
+//   // })
+//   // if (index > finalPosts.length) {
+//   //   res.json({
+//   //     success: false,
+//   //   });
+//   // } else {
+//   //    console.log('post.js sss', finalPosts)
+//   //   res.send(finalPosts)
+
+//   // res.json(finalPosts.slice(index, index + 3))
+// })
+
+
+// Suggested if no friends
 router.get('/friends-post', checkJwt, async (req, res) => {
-  let index = +req.headers["index2"];
+  let index = +req.headers["index2"] || 0;
 
-  const id = req.decoded.user._id
-  let fs = [];
-  let posts = []
-  let finalPosts = []
+  const id = req.decoded.user._id;
+
   try {
-    db.userSchema.findOne({ _id: id }, (err, frnds) => {
-      if (frnds != null) {
-        fs = frnds.friends
-        posts = db.postSchema.find()
-          .populate({
-            path: 'comments',
-            populate: {
-              path: 'user',        // جلب بيانات المستخدم لكل تعليق
-              select: 'name email username profileImage' // الحقول التي تريدها
-            }
-          })
-          .populate('likes')
-          .populate('owner')
-          .exec()
-        posts.then((value) => {
-          value.map(p => {
+    // البحث عن المستخدم والحصول على قائمة الأصدقاء
+    const user = await db.userSchema.findOne({ _id: id });
 
-            for (let i = 0; i < value.length; i++) {
-              if (p.owner._id.toString() == fs[i]) {
-                finalPosts.unshift(p)
-              }
-            }
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-          })
-          res.json(finalPosts.slice(index, index + 2))
-        })
-      }
-    })
+    const friendsIds = user.friends || [];
+
+    // جلب المنشورات مع البيانات المطلوبة
+    let posts = await db.postSchema.find()
+    .sort({ date: -1 })
+      .populate({
+        path: 'comments',
+        populate: {
+          path: 'user',
+          select: 'name email username profileImage'
+        }
+      })
+      .populate('likes')
+      .populate('owner')
+      .exec();
+
+    let finalPosts = [];
+
+    // تصفية منشورات الأصدقاء مع إضافة حقل isFriend
+    const friendsPosts = posts
+      .filter(p => p.owner && friendsIds.some(friendId =>
+        friendId.toString() === p.owner._id.toString()
+      ))
+      .map(p => ({
+        ...p.toObject(), // تحويل إلى كائن عادي
+        isFriend: true   // إضافة حقل يشير إلى أنه من صديق
+      }));
+
+    // إذا كان هناك منشورات للأصدقاء
+    if (friendsPosts.length > 0) {
+      finalPosts = friendsPosts;
+    } else {
+      // إذا لم يكن هناك منشورات للأصدقاء، جلب منشورات عشوائية من مستخدمين آخرين
+      const otherPosts = posts
+        .filter(p =>
+          p.owner &&
+          p.owner._id.toString() !== id.toString() &&
+          !friendsIds.some(friendId => friendId.toString() === p.owner._id.toString())
+        )
+        .map(p => ({
+          ...p.toObject(), // تحويل إلى كائن عادي
+          isFriend: false  // إضافة حقل يشير إلى أنه ليس من صديق
+        }));
+
+      // ترتيب عشوائي واختيار 10 منشورات كحد أقصى
+      const shuffled = otherPosts.sort(() => 0.5 - Math.random());
+      finalPosts = shuffled.slice(0, 10);
+    }
+
+    // إرجاع النتائج مع التقسيم حسب الـ index
+    res.json(finalPosts.slice(index, index + 2));
 
   } catch (error) {
-    console.log(error)
+    console.log(error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
-
-
-
-
-  //  db.userSchema.findOne({ _id: id })
-  //   .exec( (err, frnds) => {
-  //     fs =  frnds.friends
-
-  //   })
-  // posts = await db.postSchema.find().exec()
-  // let finalPosts = []
-  // posts.map( p => {
-
-  //   for (let i = 0; i < fs.length; i++) {
-  //     if (p.owner.toString() == fs[i]) {
-  //        finalPosts.push(p)
-  //     }
-  //   }
-
-  // })
-  // if (index > finalPosts.length) {
-  //   res.json({
-  //     success: false,
-  //   });
-  // } else {
-  //    console.log('post.js sss', finalPosts)
-  //   res.send(finalPosts)
-
-  // res.json(finalPosts.slice(index, index + 3))
-
-
-
-
-
-
-})
+});
 
 // router.get('/user-post/:id', checkJwt, (req, res, next) => {
 //   let postsArr = []
@@ -181,15 +249,25 @@ router.get('/user-post/:id', checkJwt, async (req, res, next) => {
     let postsArray = [];
     if (da) {
       for (let post of da.posts) {
-      let result = await db.postSchema.find({ _id: post._id }).populate('comments').populate('likes').exec();
-      postsArray.unshift(result);
+        let result = await db.postSchema.find({ _id: post._id })
+          .populate({
+            path: 'comments',
+            populate: {
+              path: 'user',
+              select: 'name'
+            }
+          })
+          .populate('likes').exec();
+        postsArray.unshift(result);
+      }
+      if (postsArray[0].length > 0)
+        res.send(postsArray.slice(index, index + 2))
     }
-    if (postsArray[0].length > 0)
-      res.send(postsArray.slice(index, index + 2))
-    }
-    
+
   } catch (e) {
     console.log(e);
   }
 });
 module.exports = router;
+
+// suggested posts

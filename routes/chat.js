@@ -252,6 +252,7 @@ module.exports = function (io) {
           })
           .populate('friends')
           .exec((err, users) => {
+            socket.emit("delete-post-for-owner", post)
             for (let i = 0; i < array_of_connection.length; i++) {
               for (let j = 0; j < users.friends.length; j++) {
                 if (array_of_connection[i]._id == users.friends[j]._id) {
@@ -262,6 +263,7 @@ module.exports = function (io) {
             for (let i = 0; i < array_of_connection.length; i++) {
               if (array_of_connection[i]._id == socket._id) {
                 array_of_connection[i].emit("delete-post", post)
+                 array_of_connection[i].emit("delete-post-for-owner", post)
               }
             }
           })
